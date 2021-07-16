@@ -8,14 +8,14 @@ CFLAGS= -g -Woverflow $(INC)
 #LIBS= -lpthread -L/nfs/usr/lib/socketcan
 LIBS= -lpthread
 
-OBJS=./main.o 
-SRCS=./main.c
+OBJS=./main.o ./uart.o ./util.o ./tcp.o
+SRCS=./main.c ./uart.c ./util.c ./tcp.c
 
 TARGET=sw.out
 
 all:	$(TARGET)
 $(TARGET):$(OBJS)
-	$(CC) -o $@ $(OBJS) $(LIBS)
+	$(CC) -DLINUXPC -o $@ $(OBJS) $(LIBS) 
 
 dep:
 	gccmakedep $(INC) $(SRCS)
