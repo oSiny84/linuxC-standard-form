@@ -40,7 +40,7 @@ int uart_init()
 	extra_termAttr.c_oflag &= ~OPOST;
 	tcsetattr(uart_fd,TCSANOW,&extra_termAttr);
 
-	printf("uart is initialized. \r\n");
+	printf("UART is initialized. \r\n");
 }
 
 void* uart_thd_run(void *arg)
@@ -63,12 +63,13 @@ void* uart_thd_run(void *arg)
         }
 		sleep_ms(1);
 	}
-	close(uart_fd);
-	printf("uart thread is closed. \r\n");
+	
+	printf("UART thread is closed. \r\n");
 }
 
 void uart_close()
 {
     run = 0;
-    printf("uart is closed. \r\n");
+	close(uart_fd);
+    printf("UART is closed. \r\n");
 }

@@ -6,12 +6,13 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <string.h>
+#include<errno.h>
 #include "tcp.h"
 #include "util.h"
 
 #define BUF_SIZE 1024     
 #define TCPPORT 5000
-#define NUMTCPWORKERS 100
+#define NUMTCPWORKERS 1
 void* dummyPointer;
 
 static int socketOpenCount = 0;
@@ -105,7 +106,7 @@ ReBinding:
         return dummyPointer;
     }
 
-	if ( setsockopt(lSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0 ){	//--0113
+	if ( setsockopt(lSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0 ){
 		printf("tcpHandler: setsockopt failed\n");
 
 		close(lSocket);
@@ -120,19 +121,19 @@ ReBinding:
 
 	status = bind(lSocket, (struct sockaddr *)&sLocalAddr, sizeof(sLocalAddr));
 	if (status<0){
-		printf("########## PORT : %d / BIND : %d\n", TCPPORT, status);
+		printf(" PORT : %d / BIND : %d\n", TCPPORT, status);
 		cntRetryBind++;
-		printf("########## tcpHandler : Bind failed [%3d]\n", cntRetryBind);
+		printf(" tcpHandler : Bind failed [%3d]\n", cntRetryBind);
 		if (cntRetryBind >= 100){
 			cntRetryBind = 0;
 
 			close(lSocket);
- 			printf("########## tcpHandler : TCP task was stopped by binding error\n");
+ 			printf(" tcpHandler : TCP task was stopped by binding error\n");
 			return dummyPointer;
 		}
 
 		close(lSocket);
-		printf("########## tcpHandler : Socket will be closed by binding error [%3d]\n", cntRetryBind);
+		printf(" tcpHandler : Socket will be closed by binding error [%3d]\n", cntRetryBind);
 	
 		sleep_ms(1000);
 		goto ReBinding;
@@ -166,10 +167,11 @@ ReBinding:
 
     while (run) {
         /* Wait for incoming request */
+        printf("wait client \r\n");
         clientfd = accept(lSocket, (struct sockaddr*)&client_addr, &addrlen);
         printf("accept client %d \r\n", clientfd);
         if( clientfd == -1 )
-        goto dispose;
+            goto dispose;
 
         bSockOpen = 0;
         for(i = 0; i<NUMTCPWORKERS;i++)
@@ -198,15 +200,23 @@ dispose:
         }
     }
 
-    printf("TCP Server service is closed.\r\n");
+    printf("TCP thread is closed.\r\n");
 }
 
 void tcp_close()
 {
     printf("TCP Closing...\r\n");
     run = 0;
-    close(lSocket);
-    sleep_ms(1000);
+
+    int t = 0;
+
+    //Tip: close 명령으로 lsocket닫기 시도하면 accept에서 바로 리턴되지 않는다.
+    //     shutdown 명령이 -1을 리턴하더라도 accept함수가 블로킹에서 바로 해지된다.
+    t = shutdown(lSocket, SHUT_RDWR);
+    if( t==-1)
+    {
+	    printf("TCP close return error: %d -> %s\n",errno, strerror(errno));
+    }
 
     printf("TCP Closed.\r\n");
 }
