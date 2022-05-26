@@ -12,6 +12,29 @@ static int run = 1;
 static int uart_fd = 0;
 struct termios extra_termAttr;
 
+int read_with_timeout(int fd, char *buf, int buf_size, int timeout_ms)
+{
+    int rx_len = 0;
+    struct    timeval  timeout;
+    fd_set  	readFds;
+
+    // recive time out config
+    // Set 1ms timeout counter
+    timeout.tv_sec  = 0;
+    timeout.tv_usec = timeout_ms*1000;   
+
+    FD_ZERO(&readFds);
+    FD_SET(fd, &readFds);
+    select(fd+1, &readFds, NULL, NULL, &timeout);
+
+    if(FD_ISSET(fd, &readFds))
+    {
+        rx_len = read(fd, buf, buf_size);		
+    }
+
+	return rx_len;
+}
+
 int uart_init()
 {
 	#if LINUXPC == 1
@@ -53,7 +76,8 @@ void* uart_thd_run(void *arg)
 	{
         if(uart_fd != -1)
         {
-            len = read(uart_fd , buf , sizeof(buf));
+            //len = read(uart_fd , buf , sizeof(buf));
+			len = read_with_timeout(uart_fd,buf,sizeof(buf),1000);
 			if( len != -1 )
 			{
             	printf("rx: %x len: %d\r\n", buf[0], len);
